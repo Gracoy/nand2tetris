@@ -1,0 +1,414 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Screen.jack
+
+/**
+ * A library of functions for displaying graphics on the screen.
+ * The Hack physical screen consists of 256 rows (indexed 0..255, top to bottom)
+ * of 512 pixels each (indexed 0..511, left to right). The top left pixel on 
+ * the screen is indexed (0,0).
+ */
+class Screen {
+    static Array screen;
+    static Array moduloMap;
+    static boolean isBlack;
+
+    /** Initializes the Screen. */
+    function void init() 
+    {
+        let screen = 16384;
+
+        let moduloMap = Array.new(17);
+        let moduloMap[0]  = -1;              // 1111 1111 1111 1111
+        let moduloMap[1]  = -2;              // 0111 1111 1111 1111
+        let moduloMap[2]  = -4;              // 0011 1111 1111 1111
+        let moduloMap[3]  = -8;              // 0001 1111 1111 1111
+        let moduloMap[4]  = -16;             // 0000 1111 1111 1111
+        let moduloMap[5]  = -32;             // 0000 0111 1111 1111
+        let moduloMap[6]  = -64;             // 0000 0011 1111 1111
+        let moduloMap[7]  = -128;            // 0000 0001 1111 1111
+        let moduloMap[8]  = -256;            // 0000 0000 1111 1111
+        let moduloMap[9]  = -512;            // 0000 0000 0111 1111
+        let moduloMap[10] = -1024;           // 0000 0000 0011 1111
+        let moduloMap[11] = -2048;           // 0000 0000 0001 1111
+        let moduloMap[12] = -4096;           // 0000 0000 0000 1111
+        let moduloMap[13] = -8192;           // 0000 0000 0000 0111
+        let moduloMap[14] = -16384;          // 0000 0000 0000 0011
+        let moduloMap[15] = 16384 + 16384;   // 0000 0000 0000 0001
+        let moduloMap[16] = 0;               // 0000 0000 0000 0000
+
+        let isBlack = true;
+
+        return;
+    }
+
+    /** Erases the entire screen. */
+    function void clearScreen() 
+    {
+        var int i;
+        let i = 0;
+        while (i < 8192)
+        {
+            let screen[i] = 0;      // 0
+            let i = i + 1;
+            let screen[i] = 0;      // 1
+            let i = i + 1;
+            let screen[i] = 0;      // 2
+            let i = i + 1;
+            let screen[i] = 0;      // 3
+            let i = i + 1;
+            let screen[i] = 0;      // 4
+            let i = i + 1;
+            let screen[i] = 0;      // 5
+            let i = i + 1;
+            let screen[i] = 0;      // 6
+            let i = i + 1;
+            let screen[i] = 0;      // 7
+            let i = i + 1;
+            let screen[i] = 0;      // 8
+            let i = i + 1;
+            let screen[i] = 0;      // 9
+            let i = i + 1;
+            let screen[i] = 0;      // 10
+            let i = i + 1;
+            let screen[i] = 0;      // 11
+            let i = i + 1;
+            let screen[i] = 0;      // 12
+            let i = i + 1;
+            let screen[i] = 0;      // 13
+            let i = i + 1;
+            let screen[i] = 0;      // 14
+            let i = i + 1;
+            let screen[i] = 0;      // 15
+            let i = i + 1;
+            let screen[i] = 0;      // 16
+            let i = i + 1;
+            let screen[i] = 0;      // 17
+            let i = i + 1;
+            let screen[i] = 0;      // 18
+            let i = i + 1;
+            let screen[i] = 0;      // 19
+            let i = i + 1;
+            let screen[i] = 0;      // 20
+            let i = i + 1;
+            let screen[i] = 0;      // 21
+            let i = i + 1;
+            let screen[i] = 0;      // 22
+            let i = i + 1;
+            let screen[i] = 0;      // 23
+            let i = i + 1;
+            let screen[i] = 0;      // 24
+            let i = i + 1;
+            let screen[i] = 0;      // 25
+            let i = i + 1;
+            let screen[i] = 0;      // 26
+            let i = i + 1;
+            let screen[i] = 0;      // 27
+            let i = i + 1;
+            let screen[i] = 0;      // 28
+            let i = i + 1;
+            let screen[i] = 0;      // 29
+            let i = i + 1;
+            let screen[i] = 0;      // 30
+            let i = i + 1;
+            let screen[i] = 0;      // 31
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    /** Sets the current color, to be used for all subsequent drawXXX commands.
+     *  Black is represented by true, white by false. */
+    function void setColor(boolean b) 
+    {
+        let isBlack = b;
+
+        return;
+    }
+
+    /** Draws the (x,y) pixel, using the current color. 
+     *  x = col, y = row  */
+    function void drawPixel(int x, int y) 
+    {
+        var int addr;
+        let addr = (x / 16) + Math.mult32(y);
+
+        if (isBlack)
+        {
+            let screen[addr] = screen[addr] | Math.twoPower(x & 15);
+        }
+        else
+        {
+            let screen[addr] = screen[addr] & ~Math.twoPower(x & 15);
+        }
+        return;
+    }
+
+    /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
+    function void drawLine(int x1, int y1, int x2, int y2) 
+    {
+        var int dx, dy;
+        let dx = x1 - x2;
+        let dy = y1 - y2;
+
+        if (dy = 0)                      // Horizontal line
+        {   
+            if (dx < 0)
+            {
+                do Screen.drawHorizontalLine(x1, x2, y1);
+            }
+            else
+            {
+                do Screen.drawHorizontalLine(x2, x1, y1);
+            }
+        }
+        else
+        {
+            if (dx = 0)                 // Vertical line
+            {
+                if (dy > 0)
+                {
+                    do Screen.drawVerticalLine(x1, y1, y2);
+                }
+                else
+                {
+                    do Screen.drawVerticalLine(x1, y2, y1);
+                }
+            }
+            else
+            {
+                if (dy < 0)
+                {
+                    do Screen.drawDiagonalLine(x2, y2, x1, y1, -dx, -dy);
+                }
+                else
+                {
+                    do Screen.drawDiagonalLine(x1, y1, x2, y2, dx, dy);
+                }
+            }
+        }
+        return;
+    }
+
+    function void drawHorizontalLine(int x1, int x2, int y)
+    {
+        var int start, end;
+        var int leftEnd, rightEnd;
+        
+        let leftEnd  = x1 & 15;
+        let rightEnd = x2 & 15;
+
+        let y = Math.mult32(y);
+        let start = x1 / 16 + y;
+        let end   = x2 / 16 + y;
+
+        if (start = end)
+        {
+            if (isBlack)
+            {
+                let screen[start] = screen[start] | (moduloMap[leftEnd] & ~moduloMap[rightEnd + 1]);
+            }
+            else
+            {
+                let screen[start] = screen[start] & ~(moduloMap[leftEnd] & ~moduloMap[rightEnd + 1]);
+            }
+        }
+        else
+        {
+            if (leftEnd > 0)
+            {
+                if (isBlack)
+                {
+                    let screen[start] = screen[start] | moduloMap[leftEnd];
+                }
+                else
+                {
+                    let screen[start] = screen[start] & ~moduloMap[leftEnd];
+                }
+
+                let start = start + 1;
+            }
+            if (~(rightEnd = 15))
+            {
+                if (isBlack)
+                {
+                    let screen[end] = screen[end] | ~moduloMap[rightEnd + 1];
+                }
+                else
+                {
+                    let screen[end] = screen[end] & moduloMap[rightEnd + 1];
+                }
+
+                let end = end - 1;
+            }
+            while (~(start > end))
+            {
+                let screen[start] = isBlack;
+                let start = start + 1;
+            }
+        }
+        return;
+    }
+
+    function void drawVerticalLine(int x, int y1, int y2)
+    {
+        while (y1 > y2)
+        {
+            do Screen.drawPixel(x, y1);
+            let y1 = y1 - 1;
+        }
+        do Screen.drawPixel(x, y1);
+        return;
+    }
+
+    function void drawDiagonalLine(int x1, int y1, int x2, int y2, int dx, int dy)
+    {
+        var int diff, stepX, stepY;
+        if (dx > 0)
+        {
+            let stepX = dx;
+            let stepY = dy;
+            let diff = dx - dy;
+            while ((stepX > 0) | (stepY > 0))
+            {
+                do Screen.drawPixel(x2 + stepX, y2 + stepY);
+                if (diff > 0)
+                {
+                    let stepX = stepX - 1;
+                    let diff = diff - dy;
+                }
+                else
+                {
+                    let stepY = stepY - 1;
+                    let diff = diff + dx;
+                }
+            }
+            do Screen.drawPixel(x2 + stepX, y2 + stepY);
+        }
+        else
+        {
+            let stepX = -dx;
+            let stepY = dy;
+            let diff = dx + dy;
+            while ((stepX > 0) | (stepY > 0))
+            {
+                do Screen.drawPixel(x1 + stepX, y1 - stepY);
+                if (diff > 0)
+                {
+                    let stepX = stepX - 1;
+                    let diff = diff - dy;
+                }
+                else
+                {
+                    let stepY = stepY - 1;
+                    let diff = diff - dx;
+                }
+            }
+            do Screen.drawPixel(x1 + stepX, y1 - stepY);
+        }
+        return;
+    }
+
+    /** Draws a filled rectangle whose top left corner is (x1, y1)
+     * and bottom right corner is (x2,y2), using the current color. */
+    function void drawRectangle(int x1, int y1, int x2, int y2) 
+    {
+        while (y1 < y2)
+        {
+            do Screen.drawHorizontalLine(x1, x2, y1);
+            let y1 = y1 + 1;
+        }
+        do Screen.drawHorizontalLine(x1, x2, y1);
+
+        return;
+    }
+
+    /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
+    function void drawCircle(int xc, int yc, int r) 
+    {
+        var int x, y, d;
+        let x = 0;
+        let y = r;
+        let d = 3 - 2 * r;
+        do Screen.filledCircle(xc, yc, x, y);
+
+        while (~(y < x))
+        {
+            let x = x + 1;
+            if (d > 0)
+            {
+                let y = y - 1;
+                let d = d + Math.mult4(x - y) + 10;
+            }
+            else
+            {
+                let d = d + Math.mult4(x) + 6;
+            }
+            do Screen.filledCircle(xc, yc, x, y);
+        }
+
+        return;
+    }
+
+    function void filledCircle(int xc, int yc, int x, int y)
+    {
+        do Screen.drawHorizontalLine(xc - x, xc + x, yc + y);
+        do Screen.drawHorizontalLine(xc - x, xc + x, yc - y);
+        do Screen.drawHorizontalLine(xc - y, xc + y, yc + x);
+        do Screen.drawHorizontalLine(xc - y, xc + y, yc - x);
+
+        return;
+    }
+
+    function void drawEmptyRect(int x1, int y1, int x2, int y2)
+    {
+        do Screen.drawHorizontalLine(x1, x2, y1);
+        do Screen.drawVerticalLine(x1, y2, y1);
+        do Screen.drawHorizontalLine(x1, x2, y2);
+        do Screen.drawVerticalLine(x2, y2, y1);
+
+        return;
+    }
+
+    function void drawEmptyCircle(int xc, int yc, int r)
+    {
+        var int x, y, d;
+        let x = 0;
+        let y = r;
+        let d = 3 - 2 * r;
+        do Screen.emptyCircle(xc, yc, x, y);
+
+        while (~(y < x))
+        {
+            let x = x + 1;
+            if (d > 0)
+            {
+                let y = y - 1;
+                let d = d + Math.mult4(x - y) + 10;
+            }
+            else
+            {
+                let d = d + Math.mult4(x) + 6;
+            }
+            do Screen.emptyCircle(xc, yc, x, y);
+        }
+
+        return;
+    }
+    
+    function void emptyCircle(int xc, int yc, int x, int y)
+    {
+        do Screen.drawPixel(xc + x, yc + y);
+        do Screen.drawPixel(xc - x, yc + y);
+        do Screen.drawPixel(xc + x, yc - y);
+        do Screen.drawPixel(xc - x, yc - y);
+        do Screen.drawPixel(xc + y, yc + x);
+        do Screen.drawPixel(xc - y, yc + x);
+        do Screen.drawPixel(xc + y, yc - x);
+        do Screen.drawPixel(xc - y, yc - x);
+
+        return;
+    }
+}

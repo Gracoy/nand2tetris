@@ -1,0 +1,239 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Math.jack
+
+/**
+ * A library of commonly used mathematical functions.
+ * Note: Jack compilers implement multiplication and division using OS method calls.
+ */
+class Math {
+    static Array bitMap;
+    static Array divideHelper;
+
+    /** Initializes the library. */
+    function void init() 
+    {
+        let bitMap = Array.new(16);
+        let bitMap[0]  = 1;                // 1000 0000 0000 0000
+        let bitMap[1]  = 2;                // 0100 0000 0000 0010
+        let bitMap[2]  = 4;                // 0010 0000 0000 0100
+        let bitMap[3]  = 8;                // 0001 0000 0000 1000
+        let bitMap[4]  = 16;               // 0000 1000 0000 0000
+        let bitMap[5]  = 32;               // 0000 0100 0000 0000
+        let bitMap[6]  = 64;               // 0000 0010 0000 0000
+        let bitMap[7]  = 128;              // 0000 0001 0000 0000
+        let bitMap[8]  = 256;              // 0000 0000 1000 0000
+        let bitMap[9]  = 512;              // 0000 0000 0100 0000
+        let bitMap[10] = 1024;             // 0000 0000 0010 0000
+        let bitMap[11] = 2048;             // 0000 0000 0001 0000
+        let bitMap[12] = 4096;             // 0000 0000 0000 1000
+        let bitMap[13] = 8192;             // 0000 0000 0000 0100
+        let bitMap[14] = 16384;            // 0000 0000 0000 0010
+        let bitMap[15] = 16384 + 16384;    // 0000 0000 0000 0001
+
+        let divideHelper = Array.new(16);
+
+        return;
+    }
+
+    function boolean bit(int x, int bit)
+    {
+        if ((x & bitMap[bit]) = 0)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    function int twoPower(int power)
+    {
+        return bitMap[power];
+    }
+
+    /** Returns the absolute value of x. */
+    function int abs(int x) 
+    {
+        if (x < 0)
+        {
+            return -x;
+        }
+        return x;
+    }
+
+    /** Returns the product of x and y. 
+     *  When a Jack compiler detects the multiplication operator '*' in the 
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x*y and multiply(x,y) return the same value.
+     */
+    function int multiply(int x, int y) 
+    {
+        var int res, idx;
+        let res = 0;
+        let idx = 0;
+
+        while (idx < 16)
+        {
+            if (Math.bit(y, idx) = true)
+            {
+                let res = res + x;
+            }
+            let x = x + x;
+            let idx = idx + 1;
+        }
+        return res;
+    }
+
+    /** Returns the integer part of x/y.
+     *  When a Jack compiler detects the multiplication operator '/' in the 
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x/y and divide(x,y) return the same value.
+     */
+    function int divide(int x, int y) 
+    {
+        if (y = 0)
+        {
+            do Sys.error(1);
+            return;
+        }
+        var boolean isMinus;
+        if ((x > 0 & y > 0) | (x < 0 & y < 0))
+        {
+            let isMinus = false;
+        }
+        else
+        {
+            let isMinus = true;
+        }
+        let x = Math.abs(x);
+        let y = Math.abs(y);
+
+        var int n, res;
+        let n = 0;
+
+        while ((y > 0) & ((y < x) | (y = x)))
+        {
+            let divideHelper[n] = y;
+            let y = y + y;
+            let n = n + 1;
+        }
+
+        let res = 0;
+        while (n > 0)
+        {
+            let res = res + res;
+            let n = n - 1;
+            if ((divideHelper[n] < x) | (divideHelper[n] = x))
+            {
+                let x = x - divideHelper[n];
+                let res = res + 1;
+            } 
+        }
+        
+        if (isMinus = true)
+        {
+            let res = -res;
+        }
+        return res;
+    }
+
+    function int modulo(int x, int y)
+    {
+        return x - y * (x / y);
+    }
+
+    function int mult4(int x)
+    {
+        let x = x + x;  // 2
+        return x + x;   // 4
+    }
+
+    function int mult8(int x)
+    {
+        let x = x + x;  // 2
+        let x = x + x;  // 4
+        return x + x;   // 8
+    }
+
+    function int mult32(int x)
+    {
+        let x = x + x;  // 2
+        let x = x + x;  // 4
+        let x = x + x;  // 8
+        let x = x + x;  // 16
+        return x + x;   // 32
+    }
+
+    function int mult256(int x)
+    {
+        let x = x + x;  // 2
+        let x = x + x;  // 4
+        let x = x + x;  // 8
+        let x = x + x;  // 16
+        let x = x + x;  // 32
+        let x = x + x;  // 64
+        let x = x + x;  // 128
+        return x + x;   // 256
+    }
+
+    /** Returns the integer part of the square root of x. */
+    // Binary search for the answer, no overflow warning
+    // The maximum number of this function is 181, otherwise overflow
+    function int sqrt(int x) 
+    {
+        if (x = 0)
+        {
+            return 0;
+        }        
+        var int left, right, mid, cur;
+        let left = 1;
+        let right = x;
+
+        while ((left < right) | (left = right))
+        {
+            let mid = left + (right - left) / 2;
+
+	        if (mid > 181)              // if x > 181, x^2 will overflow
+	        {
+		        let right = mid - 1;
+	        }
+	        else
+	        {
+                let cur = mid * mid;
+                if (cur = x)
+                {
+                    return mid;
+                }
+                if (cur > x)
+                {
+                    let right = mid - 1;
+                }
+                else
+                {
+                    let left = mid + 1;
+                }
+            }
+        }
+        return right;
+    }
+
+    /** Returns the greater number. */
+    function int max(int a, int b) 
+    {
+        if (a > b)
+        {
+            return a;
+        }
+        return b;
+    }
+
+    /** Returns the smaller number. */
+    function int min(int a, int b) 
+    {
+        if (a < b)
+        {
+            return a;
+        }
+        return b;
+    }
+}

@@ -1,0 +1,106 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/CPU.hdl
+
+/**
+ * The Hack CPU (Central Processing unit), consisting of an ALU,
+ * two registers named A and D, and a program counter named PC.
+ * The CPU is designed to fetch and execute instructions written in 
+ * the Hack machine language. In particular, functions as follows:
+ * Executes the inputted instruction according to the Hack machine 
+ * language specification. The D and A in the language specification
+ * refer to CPU-resident registers, while M refers to the external
+ * memory location addressed by A, i.e. to Memory[A]. The inM input 
+ * holds the value of this location. If the current instruction needs 
+ * to write a value to M, the value is placed in outM, the address 
+ * of the target location is placed in the addressM output, and the 
+ * writeM control bit is asserted. (When writeM==0, any value may 
+ * appear in outM). The outM and writeM outputs are combinational: 
+ * they are affected instantaneously by the execution of the current 
+ * instruction. The addressM and pc outputs are clocked: although they 
+ * are affected by the execution of the current instruction, they commit 
+ * to their new values only in the next time step. If reset==1 then the 
+ * CPU jumps to address 0 (i.e. pc is set to 0 in next time step) rather 
+ * than to the address resulting from executing the current instruction. 
+ */
+
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+	//               15   11    7    3
+	// A-instruction: 0xxx xxxx xxxx xxxx
+	// C-instruction: 1xxx xxxx xxxx xxxx
+	// Bit 15     : A-type or C-type
+	// Bit 14 ~ 13: No use
+	// Bit 12     : Op code of C-type
+	// Bit 11 ~ 6 : zx, nx, zy, ny, f, no
+	// Bit 5 ~ 3  : Destination of C-type
+	// Bit 2 ~ 0  : Jump condition
+
+	// Define instruction type
+	Not(in=instruction[15], out=Atype);
+	Not(in=Atype, out=Ctype);
+
+	// A-register opeartion
+	// Two conditions will load data into A-Reg:
+	// 1. C-type instruction + instruction[5] == 1
+	// 2. A-type instruction
+	And(a=Ctype, b=instruction[5], out=CtypeLoadA);
+	Or(a=Atype, b=CtypeLoadA, out=IfLoadRegA);
+	// Two data source may load into A-Reg:
+	// 1. ALU output
+	// 2. Instruction input
+	Mux16(a=instruction, b=ALUout, sel=CtypeLoadA, out=InputToRegA);
+	
+	// D-register opeartion
+	// Only one condtion will load data into D-Reg:
+	// 1. C-type instruction + instruction[4] == 1
+	// Only one data source:
+	// 1. ALU output
+	And(a=Ctype, b=instruction[4], out=LoadD);
+
+	// Two input for ALU opeartion: 
+	// 1. D-RegOut
+	DRegister(in=ALUout, load=LoadD, out=Dout);
+	// 2. A-RegOut or inM
+	ARegister(in=InputToRegA, load=IfLoadRegA, out=RegAout);
+	Mux16(a=RegAout, b=inM, sel=instruction[12], out=AorM);
+
+	// ALU opeartion
+	ALU(x=Dout, y=AorM, zx=instruction[11], nx=instruction[10], zy=instruction[9], 
+	    ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, zr=ZRout, ng=NGout);
+
+	// Write data to RAM
+	Or16(a=false, b=ALUout, out=outM);
+	// Address RAM
+	Or16(a=false, b=RegAout, out[0..14]=addressM);
+	// Wrtie signal: C-type instruction + instruction[3] == 1
+	And(a=Ctype, b=instruction[3], out=writeM);
+	
+	// Define jump condition
+	And(a=ZRout, b=instruction[1], out=JEQ);
+	And(a=NGout, b=instruction[2], out=JLT);
+	Or(a=ZRout, b=NGout, out=LessOrEquZero);
+	Not(in=LessOrEquZero, out=Greater);
+	And(a=Greater, b=instruction[0], out=JGT);
+	Or(a=JEQ, b=JGT, out=JGE);
+	Or(a=JEQ, b=JLT, out=JLE);
+	Or(a=JGE, b=JLT, out=ConditionalJump);
+
+	// Jump instruction
+	And(a=Ctype, b=ConditionalJump, out=PCJump);
+	Not(in=PCJump, out=PCInc);
+	PC(in=RegAout, load=PCJump, inc=PCInc, reset=reset, out[0..14]=pc);
+}
